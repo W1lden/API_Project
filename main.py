@@ -2,17 +2,27 @@ from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.future import select
+from sqlalchemy.ext.declarative import declarative_base
 from models import Product, Order, OrderItem, Base, OrderStatus
 from pydantic import BaseModel
+import asyncio
 
 DATABASE_URL = "mysql+aiomysql://root:wilden1-@localhost/warehouse"
-# DATABASE_URL = "mysql+aiomysql://root:wilden1-%40localhost/warehouse"
-
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 app = FastAPI()
+
+# Функция для создания всех таблиц
+async def create_database():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+@app.on_event("startup")
+async def startup_event():
+    # Создаем таблицы при старте приложения
+    await create_database()
 
 # Схемы для валидации данных через Pydantic
 class ProductCreate(BaseModel):
@@ -50,7 +60,6 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-# Обновление информации о товаре
 @app.put("/products/{product_id}")
 async def update_product(product_id: int, product_data: ProductCreate, db: AsyncSession = Depends(get_db)):
     product = await db.get(Product, product_id)
@@ -64,7 +73,6 @@ async def update_product(product_id: int, product_data: ProductCreate, db: Async
     await db.refresh(product)
     return product
 
-# Удаление товара
 @app.delete("/products/{product_id}")
 async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
     product = await db.get(Product, product_id)
@@ -75,7 +83,6 @@ async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
     return {"message": "Product deleted successfully"}
 
-# Создание заказа
 @app.post("/orders")
 async def create_order(order_data: OrderCreate, db: AsyncSession = Depends(get_db)):
     order = Order()
@@ -94,14 +101,12 @@ async def create_order(order_data: OrderCreate, db: AsyncSession = Depends(get_d
     await db.refresh(order)
     return order
 
-# Получение списка заказов
 @app.get("/orders")
 async def list_orders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Order))
     orders = result.scalars().all()
     return orders
 
-# Получение информации о заказе по id
 @app.get("/orders/{order_id}")
 async def get_order(order_id: int, db: AsyncSession = Depends(get_db)):
     order = await db.get(Order, order_id)
@@ -109,7 +114,6 @@ async def get_order(order_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
-# Обновление статуса заказа
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
 

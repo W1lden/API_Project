@@ -13,15 +13,16 @@ class OrderStatus(str, enum.Enum):
     processing = "в процессе"
     sent = "отправлен"
     delivered = "доставлен"
-
+    
 class Product(Base):
     __tablename__ = "products"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=True)
+    name = Column(String(255), nullable=False)  # Укажите длину для столбца name
+    description = Column(String(500), nullable=True)  # Укажите длину для столбца description
     price = Column(Float, nullable=False)
     stock = Column(Integer, default=0)
+
 
 class Order(Base):
     __tablename__ = "orders"
