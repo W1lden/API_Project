@@ -4,23 +4,30 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_USER: root
-      MYSQL_PASSWORD: wilden1-
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: warehouse
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      retries: 5
+    volumes:
+      - ./data:/var/lib/mysql
+    networks:
+      - app-network
 
-  web:
+  app:
     build: .
-    command: >
-      bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
+    environment:
+      DATABASE_URL: mysql+aiomysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db/${MYSQL_DATABASE}
+    depends_on:
+      - db
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

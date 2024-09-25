@@ -6,8 +6,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from models import Product, Order, OrderItem, Base, OrderStatus
 from pydantic import BaseModel
 import asyncio
+import os
+from dotenv import load_dotenv
 
-DATABASE_URL = "mysql+aiomysql://root:wilden1-@localhost/warehouse"
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
